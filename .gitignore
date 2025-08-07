@@ -1,0 +1,3 @@
+# ignore fasta and txt files
+*.fasta 
+*.txt
