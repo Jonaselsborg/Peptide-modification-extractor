@@ -138,7 +138,8 @@ evidence_mapped <- evidence_mapped %>%
             by = c("Modified sequence", "experiment_group"),
             relationship = "many-to-many") 
 
-# here additional stringency filters can be applied to safeguard faitful MBR transfer (e.g. trash bad matches by score)
+# here additional stringency filters can be applied to safeguard faithful MBR transfer (e.g. trash bad matches by score)
+
 
 # combine the msms with the localized sites and the mbr intensities
 evidence_modified_localized_mbr <- evidence_modified_localized %>% 
