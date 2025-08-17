@@ -1,28 +1,39 @@
-# coded by Jonas Elsborg
-# htz513
+# ------------------------------------------------------------------------------
+# Quality filter for ADP-ribosylation site data from MaxQuant
 #
-# script to look at raw evidence.txt from MQ.
-# 
-# In an unfiltered manner, consider all evidences
-# and assign intensities per experiment. 
-# 
+# Input:
+#   - evidence.txt (from MaxQuant, with ADPr search enabled)
+#   - FASTA file used for the MaxQuant search (.fasta)
 #
+# Output:
+#   - evidence_extracted_loc.txt (filtered and annotated ADPr sites)
 #
-# Version 1.1
-# Oxford 
-# made to be generalized for any file
-
+# Author
+#   Jonas D. Elsborg
+#   jonas.elsborg@cpr.ku.dk
+#   jonas.elsborg@path.ox.ac.uk
+# ------------------------------------------------------------------------------
 
 # clear env
 rm(list = ls())
 
 # libraries
 library(tidyverse)
-library(hablar)
+library(here)
 library(seqinr)
 
 # wd
-set_wd_to_script_path()
+setwd(here())
+
+# warn
+if (!file.exists("evidence.txt")) {
+  stop("Could not find 'evidence.txt' in the working directory. Please ensure the file is present.")
+}
+
+fasta_files <- list.files(pattern = "\\.fasta$", full.names = TRUE)
+if (length(fasta_files) == 0) {
+  stop("No FASTA file found in the working directory. Please provide the FASTA used in MaxQuant.")
+}
 
 # data
 evidence <- read_tsv(file = "evidence.txt") 
@@ -44,21 +55,21 @@ names(sequences) <- uniprot_ids
 rm(uniprot_ids)
 
 # function that returns the entire fasta sequence for a uniprot ID. Use the same fasta as search to ensure match
-# nb! this means any rows with ID's from MQ internal contamination DB is not found
+# Attention! this means any rows with ID's from MQ internal contamination DB is not found
 get_sequence <- function(uniprot_id) {
   return(sequences[[uniprot_id]] %>% as.character(.))
 }
 
 
-# filter on sites. The script runs as long as the peptide is modfied.
-# you could also run it if you filter(Modifications != "Unmodifed")
+# filter on sites. The script runs as long as the peptide is modified.
+# you could also run it if you filter(Modifications != "Unmodified")
 evidence_modified <- evidence %>% 
   filter(`ADP-ribosylation (CDEHKRSTY)`>0)
 
 # for reference, without filtering.
 evidence_modified_alladpr <- evidence_modified
 
-# take just the MSMS where we could trace the peak for quantification
+# take just the MSMS where we could trace the MS1 peak for quantification
 evidence_modified <- evidence_modified %>% 
   filter(Type == "MULTI-MSMS") 
 
@@ -114,10 +125,11 @@ evidence_modified_cleaned_filtered <- evidence_modified_cleaned_filtered %>%
   filter(row_number() <= first(`ADP-ribosylation (CDEHKRSTY)`)) %>%
   ungroup()
 
+# MS/MS evidence with loc >= 0.9 is required for proper localisation
 evidence_modified_localized <- evidence_modified_cleaned_filtered %>% 
   filter(Probability >= 0.9)
 
-# clear 
+# clear memory
 rm(evidence_modified_cleaned_filtered)
 rm(evidence_modified_cleaned)
 
@@ -131,7 +143,7 @@ evidence_mapped <- evidence %>%
   ) %>% filter(Type == "MULTI-MATCH")
 
 
-# this then maps the sites within that mod seq if it was localized for the group
+# this then maps the sites within that modified sequence IF it was localized for the group
 evidence_mapped <- evidence_mapped %>% 
   left_join(evidence_modified_localized %>% 
               select(`Modified sequence`, experiment_group, Residue, pep_start, pep_end, ptm_position) %>% distinct(), 
@@ -139,9 +151,11 @@ evidence_mapped <- evidence_mapped %>%
             relationship = "many-to-many") 
 
 # here additional stringency filters can be applied to safeguard faithful MBR transfer (e.g. trash bad matches by score)
+# However, this can also easily be done with further data processing.
 
 
-# combine the msms with the localized sites and the mbr intensities
+# combine the MS/MS with the localized sites and the MBR intensities
+# note: evidences with localisation below 0.9 are not included, even for quantification.
 evidence_modified_localized_mbr <- evidence_modified_localized %>% 
   select(-fasta_seq) %>% 
   bind_rows(evidence_mapped) %>% 
@@ -149,5 +163,5 @@ evidence_modified_localized_mbr <- evidence_modified_localized %>%
 
 # write tsv
 evidence_modified_localized_mbr %>% write_tsv("evidence_extracted_loc.txt")
-
+message("Filtered evidence written to 'evidence_extracted_loc.txt'")
  
