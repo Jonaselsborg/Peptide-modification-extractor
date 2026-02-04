@@ -23,7 +23,7 @@ library(here)
 library(seqinr)
 
 # wd
-#setwd(here())
+setwd("~/sequence extractor ADPr")
 
 # warn
 if (!file.exists("evidence.txt")) {
