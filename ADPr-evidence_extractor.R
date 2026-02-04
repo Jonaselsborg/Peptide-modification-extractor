@@ -23,7 +23,7 @@ library(here)
 library(seqinr)
 
 # wd
-setwd(here())
+#setwd(here())
 
 # warn
 if (!file.exists("evidence.txt")) {
@@ -41,6 +41,16 @@ evidence <- read_tsv(file = "evidence.txt")
 # define the grouping
 evidence <- evidence %>% 
   mutate(experiment_group = str_remove(Experiment, pattern = "_[0-9]+$"))
+
+# Define the match groups. 
+# - If the same as experimental groups, then those groups define the boundaries.
+# - If the match group is the same for all samples, it will match all-to-all.
+# - you can define custom match groups. (match within PARPs, match within treatments etc.)
+
+evidence <- evidence %>% 
+  #mutate(match_group = experiment_group) %>%  # MBR within replicates
+  #mutate(match_group = "all-to-all") %>%  # if only one param group is defined, MBR between all samples (default MQ option)
+  mutate(match_group = str_extract(experiment_group, "^PARP[^-]+")) # MBR within custom group
 
 # Read the FASTA file
 fasta_files <- list.files(pattern = "\\.fasta$", full.names = TRUE)
@@ -138,16 +148,16 @@ rm(evidence_modified_cleaned)
 evidence_mapped <- evidence %>% 
   semi_join(
     evidence_modified_localized %>% 
-      select(`Modified sequence`, experiment_group) %>% distinct(),
-    by = c("Modified sequence", "experiment_group")
+      select(`Modified sequence`, match_group) %>% distinct(),
+    by = c("Modified sequence", "match_group")
   ) %>% filter(Type == "MULTI-MATCH")
 
 
 # this then maps the sites within that modified sequence IF it was localized for the group
 evidence_mapped <- evidence_mapped %>% 
   left_join(evidence_modified_localized %>% 
-              select(`Modified sequence`, experiment_group, Residue, pep_start, pep_end, ptm_position) %>% distinct(), 
-            by = c("Modified sequence", "experiment_group"),
+              select(`Modified sequence`, match_group, Residue, pep_start, pep_end, ptm_position) %>% distinct(), 
+            by = c("Modified sequence", "match_group"),
             relationship = "many-to-many") 
 
 # here additional stringency filters can be applied to safeguard faithful MBR transfer (e.g. trash bad matches by score)
