@@ -19,11 +19,11 @@ rm(list = ls())
 
 # libraries
 library(tidyverse)
-library(here)
+#library(here)
 library(seqinr)
 
 # wd
-setwd("~/sequence extractor ADPr")
+#setwd("~/sequence extractor ADPr")
 
 # warn
 if (!file.exists("evidence.txt")) {
@@ -49,8 +49,8 @@ evidence <- evidence %>%
 
 evidence <- evidence %>% 
   #mutate(match_group = experiment_group) %>%  # MBR within replicates
-  #mutate(match_group = "all-to-all") %>%  # if only one param group is defined, MBR between all samples (default MQ option)
-  mutate(match_group = str_extract(experiment_group, "^PARP[^-]+")) # MBR within custom group
+  mutate(match_group = "all-to-all") #%>%  # if only one param group is defined, MBR between all samples (default MQ option)
+  #mutate(match_group = str_extract(experiment_group, "^PARP[^-]+")) # MBR within custom group
 
 # Read the FASTA file
 fasta_files <- list.files(pattern = "\\.fasta$", full.names = TRUE)
@@ -174,4 +174,3 @@ evidence_modified_localized_mbr <- evidence_modified_localized %>%
 # write tsv
 evidence_modified_localized_mbr %>% write_tsv("evidence_extracted_loc.txt")
 message("Filtered evidence written to 'evidence_extracted_loc.txt'")
- 
