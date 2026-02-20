@@ -19,7 +19,7 @@ rm(list = ls())
 
 # libraries
 library(tidyverse)
-#library(here)
+library(hablar)
 library(seqinr)
 
 # wd
@@ -40,7 +40,8 @@ evidence <- read_tsv(file = "evidence.txt")
 
 # define the grouping
 evidence <- evidence %>% 
-  mutate(experiment_group = str_remove(Experiment, pattern = "_[0-9]+$"))
+  mutate(experiment_group = str_remove(Experiment, pattern = "_[0-9]+$")) %>% 
+  convert(fct(experiment_group))
 
 # Define the match groups. 
 # - If the same as experimental groups, then those groups define the boundaries.
@@ -49,9 +50,10 @@ evidence <- evidence %>%
 
 evidence <- evidence %>% 
   #mutate(match_group = experiment_group) %>%  # MBR within replicates
-  mutate(match_group = "all-to-all") #%>%  # if only one param group is defined, MBR between all samples (default MQ option)
-  #mutate(match_group = str_extract(experiment_group, "^PARP[^-]+")) # MBR within custom group
-
+  mutate(match_group = "all-to-all") %>%  # if only one param group is defined, MBR between all samples (default MQ option)
+  #mutate(match_group = str_extract(experiment_group, "^PARP[^-]+")) %>%  # MBR within custom group
+  convert(fct(match_group))
+  
 # Read the FASTA file
 fasta_files <- list.files(pattern = "\\.fasta$", full.names = TRUE)
 fasta_file <- fasta_files[1] # take the first
